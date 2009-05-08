@@ -10,9 +10,8 @@ void* SendARPreplyMainRoutine(void* data)
 {
 	while(1)
 	{
-		printf("[+] Sending spoofed ARP Reply\n");
 		libnet_write(l);
-		sleep(15);
+		sleep(10);
 	}
 	
 	return NULL;
@@ -48,6 +47,7 @@ void LaunchThread()
 	assert(!returnVal);
 	if (threadError != 0)
 	{
-		printf("Error working with POSIX threads\n");
+		printf("[-] Error working with POSIX threads\n");
 	}
+	return;
 }
