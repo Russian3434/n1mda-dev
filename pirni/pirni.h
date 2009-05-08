@@ -5,8 +5,8 @@
 #include <pthread.h>
 #include <string.h>
 #include <pcap.h>
+#include <unistd.h>
 
-#define ARP_REPLY 2
 
 /* For ARP spoof */
 #ifndef ETH_ALEN
@@ -21,10 +21,16 @@
 #define ARP_REQUEST			1
 #define ARP_REPLY			2
 
+/* HW and IP Adresses */
+
+u_long			SrcIP, DstIP;
+char *routerIP;
+//int child_pid=0;
+
 /* public variable for libnet handle */
 libnet_t	*l;
 char		*device;
-
+const char	*outputFile;
 
 void LaunchThread();
 void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char * packet);
