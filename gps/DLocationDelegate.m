@@ -28,6 +28,19 @@ void powerCallback(void *refCon, io_service_t service, natural_t messageType, vo
 		CFRunLoopAddSource(CFRunLoopGetCurrent(),
 										IONotificationPortGetRunLoopSource(notificationPort),
 										kCFRunLoopCommonModes);
+		
+		NSTimer *timer =  [[NSTimer
+							//timerWithTimeInterval:1800.0
+							timerWithTimeInterval:10.0
+							target:self
+							selector:@selector(startItAgain:)
+							userInfo:nil
+							repeats:YES
+							] retain];
+							
+		[[NSRunLoop currentRunLoop] addTimer:timer forMode:NSDefaultRunLoopMode];
+ 		
+ 		[timer release];
 	}
 	return self;
 }
@@ -43,11 +56,17 @@ void powerCallback(void *refCon, io_service_t service, natural_t messageType, vo
 {
 	if(!trackingGPS)
 	{
- 		
-		NSLog(@"startItAgain: CFRunLoopAddSource()");
+		NSDate *now = [NSDate date];
 		
-		trackingGPS = true;
-		[self.locationManager startUpdatingLocation];
+		if(fabs([now timeIntervalSinceDate:self.locationManager.location.timestamp]) > 1790)
+		{
+			NSLog(@"startItAgain: CFRunLoopAddSource()");
+		
+			trackingGPS = true;
+			[self.locationManager startUpdatingLocation];
+		} else {
+			NSLog(@"30 minutes has not passed");
+		}
 	}
 }
  
@@ -104,20 +123,10 @@ fromLocation:(CLLocation *)oldLocation
 		{
 			trackingGPS = NO;
 		}		
- 
-		NSLog(@"setting timer for 30 minutes");
-		NSTimer *timer =  [[NSTimer
-							timerWithTimeInterval:1800.0
-							//timerWithTimeInterval:3.0
-							target:self
-							selector:@selector(startItAgain:)
-							userInfo:nil
-							repeats:NO
-							] retain];
-							
-		[[NSRunLoop currentRunLoop] addTimer:timer forMode:NSDefaultRunLoopMode];
- 		
-		[timer release];
+
+ 		NSCalendarDate *nextWake = [[NSCalendarDate calendarDate] dateByAddingYears:0 months:0 days:0 hours:0 minutes:30 seconds:0];
+		CPSchedulePowerUpAtDate((CFDateRef)nextWake); // From AppSupport framework
+		
 		[latitude release];
 		[longitude release];
 		[altitude release];
@@ -142,7 +151,6 @@ didFailWithError:(NSError *)error
 	trackingGPS = false;
 	
 	NSLog(@"Removing Sleep notification");
-	// remove the sleep notification
 	CFRunLoopRemoveSource(CFRunLoopGetCurrent(),
 										IONotificationPortGetRunLoopSource(notificationPort),
 										kCFRunLoopCommonModes);
@@ -170,19 +178,12 @@ didFailWithError:(NSError *)error
 			// Idle sleep is about to kick in.
 			
 			NSLog(@"powerMessageReceived kIOMessageCanSystem Sleep");
-			if(!allowSleep)
-			{
-				sleeping = false;
-				IOCancelPowerChange(root_port, (long)messageArgument);
-			} else {
-				sleeping = true;
-				IOAllowPowerChange(root_port, (long)messageArgument);
-			}
+			IOCancelPowerChange(root_port, (long)messageArgument);
 			break;
 		
 		case kIOMessageSystemHasPoweredOn:
+			// system has powered on again
 			NSLog(@"powerMessageReceived kIOMessageSystemHasPoweredOn");
-			sleeping = false;
 			break;
 		
 	}
