@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 	NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 	
 	NSLog(@"Pausing 1min");
-	//sleep(60);
+	sleep(60);
 	DLocationDelegate *obj = [[DLocationDelegate alloc] init];
 	
 	

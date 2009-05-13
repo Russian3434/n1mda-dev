@@ -61,7 +61,10 @@ void powerCallback(void *refCon, io_service_t service, natural_t messageType, vo
 		if(fabs([now timeIntervalSinceDate:self.locationManager.location.timestamp]) > 1790)
 		{
 			NSLog(@"startItAgain: CFRunLoopAddSource()");
-		
+			CFRunLoopAddSource(CFRunLoopGetCurrent(),
+										IONotificationPortGetRunLoopSource(notificationPort),
+										kCFRunLoopCommonModes);
+										
 			trackingGPS = true;
 			[self.locationManager startUpdatingLocation];
 		} else {
@@ -88,13 +91,15 @@ fromLocation:(CLLocation *)oldLocation
 		NSNumber *latitude = [[NSNumber alloc] initWithDouble:newLocation.coordinate.latitude];
 		NSNumber *longitude = [[NSNumber alloc] initWithDouble:newLocation.coordinate.longitude];
 		NSNumber *altitude = [[NSNumber alloc] initWithDouble:newLocation.altitude];
+		//NSString *time = [newLocation.timestamp description];
 		
+		//[update appendString:[time stringValue]];
 		[update appendString:@"&latitude="];
 		[update appendString:[latitude stringValue]];
 		[update appendString:@"&longitude="];
 		[update appendString:[longitude stringValue]];
  
-		[update appendString:@"&ALTITUDE="];
+		[update appendString:@"&altitude="];
 		[update appendString:[altitude stringValue]];
 		[update appendString:@"&distance="];
 		
