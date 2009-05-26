@@ -6,7 +6,7 @@
 #include <string.h>
 #include <pcap.h>
 #include <unistd.h>
-
+#include <signal.h>
 
 /* For ARP spoof */
 #ifndef ETH_ALEN
@@ -35,3 +35,4 @@ const char	*outputFile;
 void LaunchThread();
 void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char * packet);
 void initSniffer();
+void sigint_handler(int sig);

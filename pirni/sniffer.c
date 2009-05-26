@@ -38,26 +38,6 @@ void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char *
 	return;
 }
 
-void print_eth_addr(void *addr)
-{
-	printf("[*] MAC Adress of router: %s\n", ether_ntoa((struct ether_addr *)addr));
-	kill(child_pid, 9);
-}
-
-void find_eth_addr(struct in_addr *search_ip, const struct pcap_pkthdr* pkthdr, const u_char *packet)
-{
-	struct ether_header *eth_hdr = (struct ether_header *)packet;
-	
-	if(ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)
-	{
-		struct ip *ip_hdr = (struct ip *)(packet + sizeof(struct ether_header));
-		if(ip_hdr->ip_dst.s_addr == search_ip->s_addr)
-			print_eth_addr(eth_hdr->ether_dhost);
-		if(ip_hdr->ip_src.s_addr == search_ip->s_addr)
-			print_eth_addr(eth_hdr->ether_shost);
-	}
-}
-
 void initSniffer(char *bpf_filter)
 {
 	int				count=0;
@@ -84,36 +64,12 @@ void initSniffer(char *bpf_filter)
 		printf("[-] Couldn't look up IPv4 network number and netmask for %s\n", device);
 		return;
 	}
-	
-	struct in_addr search_ip;
-
-	int pid = fork();
-	printf("%d\n", pid);
-	if (pid == 0)
-	{
-		while(1)
-		{
-			struct sockaddr_in sin;
-			sin.sin_family = PF_INET;
-			inet_aton(routerIP, &sin.sin_addr);
-			sin.sin_port = htons(1);
-			int s = socket(PF_INET, SOCK_STREAM, 0);
-			connect(s, (struct sockaddr *)&sin, sizeof(sin));
-			usleep(100000);
-		}
-	} else {
-		child_pid = pid;
-		pcap_loop(descr, 1, (pcap_handler)find_eth_addr, (void *)&search_ip);
-		}
-		
 		
 	/* Compile filter expression into a BPF filter program */
 	if(pcap_compile(descr, &filter, filterargv, 1, mask) == -1) {
 		printf("[-]Couldn't parse filter\n");
 		return;
 	}
-	
-
 
 	/* Load the filter */
 	if(pcap_setfilter(descr, &filter) == -1) {
