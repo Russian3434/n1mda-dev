@@ -14,13 +14,13 @@ int child_pid = 0;
  * 		Processes all packets recieved and
  * 		prints them.
  * *******************************************/
-void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char * packet)
+void processPacket(u_char *dumpfile, const struct pcap_pkthdr* pkthdr, const u_char * packet)
 {
-//	FILE *fp;
-	int i=0;
+	pcap_dump(dumpfile, pkthdr, packet);
+	
+	/*int i=0;
 	int *counter = (int *)arg;
 	
-	//fp = fopen(outputFile, "a+");
 	printf("Packet Count: %d\n", ++(*counter));
 	printf("Recieved Packet Size: %d\n", pkthdr->len);
 	printf("Payload:\n");
@@ -33,19 +33,19 @@ void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char *
 			
 		if((i%16 == 0 && i!=0) || i==pkthdr->len-1)
 			printf("\n");
-	}
+	}*/
 	
 	return;
 }
 
-void initSniffer(char *bpf_filter)
+void initSniffer(char *bpf_filter, char *dump_path)
 {
-	int				count=0;
-	bpf_u_int32		netaddr=0, mask=0;		// To store network address and netmask
-	struct bpf_program filter;			// To store the BPF filter program
+	//int				count=0;
+	bpf_u_int32		netaddr = 0, mask = 0;		// To store network address and netmask
+	struct bpf_program filter;					// To store the BPF filter program
 	pcap_t			*descr = NULL;				// Network interface handler
-	char			errbuf[PCAP_ERRBUF_SIZE];		// Error buffer
-	char			*filterargv = bpf_filter;			// Filter supplied by end user
+	char			errbuf[PCAP_ERRBUF_SIZE];	// Error buffer
+	char			*filterargv = bpf_filter;	// Filter supplied by end user
 	
 	memset(errbuf, 0, PCAP_ERRBUF_SIZE);
 	
@@ -79,8 +79,16 @@ void initSniffer(char *bpf_filter)
 	
 	printf("[+] Setting filter: %s\n", filterargv);
 	
+	dumpfile = pcap_dump_open(descr, dump_path);
+	if(dumpfile ==NULL)
+	{
+		printf("[-] Could not open dump file (check permissions?)\n");
+		return;
+	}
+	
+	printf("[*] Collecting packets to %s, use Ctrl-C to cancel\n", dump_path);
 	/* Loop forever & call processPacket() for every received packet */
-	pcap_loop(descr, -1, processPacket, (u_char *)&count);
+	pcap_loop(descr, -1, processPacket, (u_char *)dumpfile);
 	
 	return;
 }

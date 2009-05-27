@@ -24,13 +24,15 @@
 /* HW and IP Adresses */
 
 u_long			SrcIP, DstIP;
-char *routerIP;
+char 			*routerIP;
+//int				i = 0;
 //int child_pid=0;
 
 /* public variable for libnet handle */
 libnet_t	*l;
 char		*device;
 const char	*outputFile;
+pcap_dumper_t	*dumpfile;
 
 void LaunchThread();
 void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char * packet);

