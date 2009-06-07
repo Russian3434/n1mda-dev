@@ -9,6 +9,7 @@ void print_usage(char *name)
 {
 	printf("Pirni ARP Spoofer and packet sniffer %g\n\n", VERSION);
 	printf("Usage:\t%s -s source_ip -d [destination_ip] -f [BPF_Filter] -o log.pcap\n", name);
+	printf("Ex:\t%s -s 192.168.0.1 -o log.pcap\n", name);
 	printf("Ex:\t%s -s 192.168.0.1 -d 192.168.0.128 -f \"tcp dst port 80\" -o log.pcap\n", name);
 	printf("Where:\t source_ip is the IP-adress you want to spoof, most likely the router\n");
 	printf("Where:\t (OPTIONAL) [destination_ip] is the device you want to perform MITM on. Broadcast IP will be used if nothing else supplied.\n");
