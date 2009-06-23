@@ -7,6 +7,8 @@
 #include <pcap.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/ioctl.h>
+#include <sys/sysctl.h>
 
 /* For ARP spoof */
 #ifndef ETH_ALEN
@@ -24,14 +26,14 @@
 /* HW and IP Adresses */
 
 u_long			SrcIP, DstIP;
-char 			*routerIP;
-//int				packetsCaptured;
+
 /* public variable for libnet handle */
 libnet_t	*l;
 char		*device;
 const char	*outputFile;
 pcap_dumper_t	*dumpfile;
 
+		
 void LaunchThread();
 void processPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char * packet);
 void initSniffer();

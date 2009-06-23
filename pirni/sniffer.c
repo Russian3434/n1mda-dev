@@ -48,13 +48,13 @@ void initSniffer(char *bpf_filter, char *dump_path)
 		
 	/* Compile filter expression into a BPF filter program */
 	if(pcap_compile(descr, &filter, filterargv, 1, mask) == -1) {
-		printf("[-]Couldn't parse filter\n");
+		printf("[-] Couldn't parse filter\n");
 		return;
 	}
 
 	/* Load the filter */
 	if(pcap_setfilter(descr, &filter) == -1) {
-		printf("[-]Couldn't install filter - Typo?. See userguide\n");
+		printf("[-] Couldn't install filter - Typo?. See userguide\n");
 		return;
 	}
 	
